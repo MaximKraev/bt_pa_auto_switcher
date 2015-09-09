@@ -148,8 +148,8 @@ use Expect;
 use File::Basename;
 
 # WEBRTC VoiceEngine is Google Chat, Voice, and Talk.
-my $valid_clients = qr/(?:Skype|WEBRTC VoiceEngine)/;
-my $mute_corked = 1;
+my $valid_clients = qr/(?:Skype|WEBRTC VoiceEngine|Chromium)/;
+my $mute_corked = 0;
 my $whoami = basename $0;
 
 &main_loop;
@@ -279,7 +279,7 @@ sub switch {
     &mute_corked();
     print "$whoami: Switching\n";
     open(PACMD, "|-", "pacmd >/dev/null") or die;
-    print(PACMD "set-card-profile $card_name hsp\n");
+    print(PACMD "set-card-profile $card_name headset_head_unit\n");
     print(PACMD "set-default-source $source_name\n");
     print(PACMD "set-default-sink $sink_name\n");
     foreach my $sink (keys %{$connections{'sink-input'}}) {
@@ -304,7 +304,7 @@ sub switch_back {
     my $new_volume = &get_sink_volume($sink_name);
     print "$whoami: Switching back\n";
     open(PACMD, "|-", "pacmd >/dev/null") or die;
-    print(PACMD "set-card-profile $card_name a2dp\n");
+    print(PACMD "set-card-profile $card_name a2dp_sink\n");
     print(PACMD "set-default-sink $sink_name\n");
     if (defined($saved_volume)) {
 	print "$whoami: Resetting volume to $saved_volume\n";
@@ -318,7 +318,7 @@ sub switch_back {
 sub get_running_bluez_sink {
     local($_);
     my($sink);
-    open(STAT, "-|", "pactl stat");
+    open(STAT, "-|", "pactl info");
     while (<STAT>) {
 	if (/^Default Sink/) {
 	    if (/(bluez_sink.*)/) {
@@ -331,6 +331,8 @@ sub get_running_bluez_sink {
     if ($sink) {
 	my($card) = $sink;
 	$card =~ s/sink/card/;
+	print("card: $card");
+	print("sink: $sink");
 	return($sink, $card);
     }
     return ();
@@ -391,7 +393,7 @@ sub get_current_profile {
 sub hsp {
     my($sink, $card) = &get_running_bluez_sink();
     my $profile = &get_current_profile($card);
-    $profile eq 'hsp';
+    $profile eq 'headset_head_unit';
 }
 
 sub mute_corked {
